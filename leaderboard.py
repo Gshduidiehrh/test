@@ -4,26 +4,26 @@ import os
 from datetime import datetime
 
 def generate_leaderboard():
-    # Создаем базовую структуру
     md = "# 🏆 Таблица лидеров\n\n"
     md += f"Последнее обновление: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
     
-    # Пытаемся найти и обработать результаты
     try:
         results = []
-        for file in glob.glob("results/**/result.json", recursive=True):
+        # Исправлен путь для поиска результатов
+        for file in glob.glob("results/*/result.json", recursive=True):
             try:
                 with open(file) as f:
                     data = json.load(f)
+                # Извлекаем имя пользователя из пути
                 username = os.path.basename(os.path.dirname(file))
-                total = data['generation_time'] + data['sorting_time']
                 results.append({
                     "user": username,
                     "generation": data["generation_time"],
                     "sorting": data["sorting_time"],
-                    "total": total
+                    "total": data["generation_time"] + data["sorting_time"]
                 })
-            except:
+            except Exception as e:
+                print(f"Ошибка обработки файла {file}: {str(e)}")
                 continue
         
         if results:
@@ -40,10 +40,6 @@ def generate_leaderboard():
             
     except Exception as e:
         md += f"## Ошибка при генерации\n```\n{str(e)}\n```\n"
-    
-    # Гарантированный тестовый результат
-    md += "\n\n## Пример формата\n"
-    md += "| 1 | ExampleUser | 12.34 | 56.78 | **69.12** |"
     
     return md
 
