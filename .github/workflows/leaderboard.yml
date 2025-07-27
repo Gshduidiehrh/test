@@ -2,7 +2,7 @@ name: Update Leaderboard
 
 on:
   schedule:
-    - cron: '0 0 * * *' 
+    - cron: '0 0 * * *'
   workflow_dispatch:
 
 permissions:
@@ -25,7 +25,6 @@ jobs:
     - name: Prepare results directory
       run: |
         mkdir -p results
-        # Перемещаем артефакты в правильную структуру
         for file in downloaded_artifacts/*; do
           if [ -f "$file" ]; then
             username=${file#downloaded_artifacts/results-}
@@ -41,10 +40,16 @@ jobs:
         python3 leaderboard.py
         cat LEADERBOARD.md
         
-    - name: Update leaderboard file
+    - name: Commit and push
       run: |
         git config user.name "github-actions"
         git config user.email "actions@users.noreply.github.com"
         git add LEADERBOARD.md
-        git commit -m "📊 Automated leaderboard update"
-        git push
+        
+        # Проверка изменений перед коммитом
+        if [ -n "$(git status --porcelain)" ]; then
+          git commit -m "📊 Automated leaderboard update"
+          git push
+        else
+          echo "No changes to commit"
+        fi
