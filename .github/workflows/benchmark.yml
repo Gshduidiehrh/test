@@ -24,5 +24,5 @@ jobs:
     - name: Save results
       uses: actions/upload-artifact@v4
       with:
-        name: results-${{ github.event.workflow_run.head_repository.owner.login }}
+        name: ${{ github.event.workflow_run.head_repository.owner.login }}-result
         path: result.json
