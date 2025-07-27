@@ -18,25 +18,44 @@ jobs:
     - name: Download all artifacts
       uses: actions/download-artifact@v4
       with:
-        path: results
+        path: artifacts
         pattern: '*-result'
         merge-multiple: true
         
-    - name: Rename artifacts to JSON
+    - name: Prepare results directory
       run: |
-        cd results
-        for file in *; do
-          username="${file%-result}"
-          mkdir -p "../leaderboard_results/$username"
-          mv "$file" "../leaderboard_results/$username/result.json"
-        done
-        echo "Results structure:"
-        find ../leaderboard_results -type f
+        echo "Содержимое artifacts:"
+        ls -R artifacts
+        
+        mkdir -p leaderboard_results
+        
+        # Проверяем есть ли файлы
+        if [ "$(ls -A artifacts)" ]; then
+          echo "Обработка артефактов..."
+          cd artifacts
+          for file in *; do
+            username="${file%-result}"
+            echo "Обработка: $file → Пользователь: $username"
+            mkdir -p "../leaderboard_results/$username"
+            mv "$file" "../leaderboard_results/$username/result.json"
+          done
+        else
+          echo "Артефактов не найдено"
+        fi
+        
+        echo "Финальная структура:"
+        find leaderboard_results -type f
         
     - name: Generate leaderboard
       run: |
+        # Создаем каталог results если его нет
         mkdir -p results
-        mv leaderboard_results/* results/ || echo "No results"
+        
+        # Копируем обработанные данные
+        if [ -d "leaderboard_results" ]; then
+          cp -R leaderboard_results/* results/ || echo "Нет данных для копирования"
+        fi
+        
         python3 leaderboard.py
         cat LEADERBOARD.md
         
