@@ -6,19 +6,6 @@
 #include <sstream>
 
 
-struct Result {
-    double generation_time;
-    double sorting_time;
-    
-    std::string to_json() {
-        std::stringstream ss;
-        ss << "{"
-           << "\"generation_time\":" << generation_time << ","
-           << "\"sorting_time\":" << sorting_time
-           << "}";
-        return ss.str();
-    }
-};
 
 int main() {
     const size_t N = 50000;
@@ -43,3 +30,19 @@ int main() {
     
     return 0;
 }
+
+
+
+struct Result {
+    double generation_time;
+    double sorting_time;
+    
+    std::string to_json() {
+        std::stringstream ss;
+        ss << "{"
+           << "\"generation_time\":" << generation_time << ","
+           << "\"sorting_time\":" << sorting_time
+           << "}";
+        return ss.str();
+    }
+};
