@@ -2,7 +2,7 @@ name: Update Leaderboard
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 0 * * *'  # Каждую полночь по UTC
   workflow_dispatch:
 
 permissions:
@@ -15,40 +15,32 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
-    - name: Download all artifacts
+    - name: Download artifacts
       uses: actions/download-artifact@v4
       with:
         path: artifacts
-        pattern: '*-result'
         merge-multiple: true
-      
-    - name: Prepare results directory
-      run: |
-        # Всегда создаем каталоги
-        mkdir -p artifacts leaderboard_results results
         
-        # Проверяем есть ли артефакты
-        if [ -n "$(find artifacts -type f)" ]; then
-          echo "Обработка артефактов..."
+    - name: Prepare results
+      run: |
+        # Создаем структуру каталогов
+        mkdir -p results
+        
+        # Обрабатываем артефакты
+        if [ -d "artifacts" ]; then
           cd artifacts
-          for file in *; do
-            if [ -f "$file" ]; then
-              username="${file%-result}"
-              echo "Обработка: $file → Пользователь: $username"
-              mkdir -p "../leaderboard_results/$username"
-              mv "$file" "../leaderboard_results/$username/result.json"
+          for user_dir in *; do
+            if [ -f "$user_dir" ]; then
+              mkdir -p "../results/$user_dir"
+              mv "$user_dir" "../results/$user_dir/result.json"
             fi
           done
           cd ..
-        else
-          echo "Артефактов не найдено"
         fi
         
-        # Копируем обработанные данные
-        cp -R leaderboard_results/* results/ || echo "Нет данных для копирования"
-        
-        echo "Финальная структура results:"
-        find results -type f || echo "Каталог results пуст"
+        # Добавляем тестовые данные
+        mkdir -p results/test-user
+        echo '{"generation_time": 12.34, "sorting_time": 56.78, "total_time": 69.12, "correctly_sorted": true}' > results/test-user/result.json
         
     - name: Generate leaderboard
       run: |
@@ -60,10 +52,5 @@ jobs:
         git config user.name "github-actions"
         git config user.email "actions@users.noreply.github.com"
         git add LEADERBOARD.md
-        
-        if [ -n "$(git status --porcelain)" ]; then
-          git commit -m "📊 Automated leaderboard update"
-          git push
-        else
-          echo "No changes to commit"
-        fi
+        git commit -m "📊 Обновление таблицы лидеров"
+        git push
