@@ -4,33 +4,27 @@ import os
 def check_results():
     try:
         if not os.path.exists("result.json"):
-            print("❌ File result.json not found!")
+            print("❌ Файл result.json не найден")
             return False
             
         with open('result.json') as f:
-            content = f.read().strip()
-            if not content:
-                print("❌ File result.json is empty!")
-                return False
-            if "generation_time" not in content or "sorting_time" not in content:
-                print(f"❌ Invalid JSON format: {content}")
+            data = json.load(f)
+        
+        required_fields = ['generation_time', 'sorting_time', 'total_time', 'correctly_sorted']
+        for field in required_fields:
+            if field not in data:
+                print(f"❌ Отсутствует поле: {field}")
                 return False
                 
-            data = json.loads(content)
+        if not data['correctly_sorted']:
+            print("❌ Массив не отсортирован правильно")
+            return False
             
-            assert 'generation_time' in data, "Missing generation_time"
-            assert 'sorting_time' in data, "Missing sorting_time"
-            assert isinstance(data['generation_time'], (int, float)), "Invalid generation_time type"
-            assert isinstance(data['sorting_time'], (int, float)), "Invalid sorting_time type"
-            assert data['sorting_time'] > 0, "Sorting time must be positive"
-            
-            print("✅ Results are valid!")
-            print(f"Generation time: {data['generation_time']} ms")
-            print(f"Sorting time: {data['sorting_time']} ms")
-            return True
-            
+        print(f"✅ Результаты верны! Генерация: {data['generation_time']} мс, Сортировка: {data['sorting_time']} мс")
+        return True
+        
     except Exception as e:
-        print(f"❌ Validation failed: {str(e)}")
+        print(f"❌ Ошибка проверки: {str(e)}")
         return False
 
 if __name__ == "__main__":
