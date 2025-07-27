@@ -18,25 +18,25 @@ jobs:
     - name: Download all artifacts
       uses: actions/download-artifact@v4
       with:
-        path: downloaded_artifacts
-        pattern: results-*
+        path: results
+        pattern: '*-result'
         merge-multiple: true
         
-    - name: Prepare results directory
+    - name: Rename artifacts to JSON
       run: |
-        mkdir -p results
-        for file in downloaded_artifacts/*; do
-          if [ -f "$file" ]; then
-            username=${file#downloaded_artifacts/results-}
-            mkdir -p "results/$username"
-            mv "$file" "results/$username/result.json"
-          fi
+        cd results
+        for file in *; do
+          username="${file%-result}"
+          mkdir -p "../leaderboard_results/$username"
+          mv "$file" "../leaderboard_results/$username/result.json"
         done
         echo "Results structure:"
-        find results -type f
+        find ../leaderboard_results -type f
         
     - name: Generate leaderboard
       run: |
+        mkdir -p results
+        mv leaderboard_results/* results/ || echo "No results"
         python3 leaderboard.py
         cat LEADERBOARD.md
         
@@ -46,7 +46,6 @@ jobs:
         git config user.email "actions@users.noreply.github.com"
         git add LEADERBOARD.md
         
-        # Проверка изменений перед коммитом
         if [ -n "$(git status --porcelain)" ]; then
           git commit -m "📊 Automated leaderboard update"
           git push
