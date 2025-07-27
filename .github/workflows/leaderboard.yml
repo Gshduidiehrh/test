@@ -29,16 +29,16 @@ jobs:
         # Обрабатываем артефакты
         if [ -d "artifacts" ]; then
           cd artifacts
-          for user_dir in *; do
-            if [ -f "$user_dir" ]; then
-              mkdir -p "../results/$user_dir"
-              mv "$user_dir" "../results/$user_dir/result.json"
+          for user_file in *; do
+            if [ -f "$user_file" ]; then
+              mkdir -p "../results/$user_file"
+              cp "$user_file" "../results/$user_file/result.json"
             fi
           done
           cd ..
         fi
         
-        # Добавляем тестовые данные
+        # Добавляем тестовые данные (можно удалить после проверки)
         mkdir -p results/test-user
         echo '{"generation_time": 12.34, "sorting_time": 56.78, "total_time": 69.12, "correctly_sorted": true}' > results/test-user/result.json
         
