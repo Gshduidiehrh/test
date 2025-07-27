@@ -21,41 +21,37 @@ jobs:
         path: artifacts
         pattern: '*-result'
         merge-multiple: true
-        
+      
     - name: Prepare results directory
       run: |
-        echo "Содержимое artifacts:"
-        ls -R artifacts
+        # Всегда создаем каталоги
+        mkdir -p artifacts leaderboard_results results
         
-        mkdir -p leaderboard_results
-        
-        # Проверяем есть ли файлы
-        if [ "$(ls -A artifacts)" ]; then
+        # Проверяем есть ли артефакты
+        if [ -n "$(find artifacts -type f)" ]; then
           echo "Обработка артефактов..."
           cd artifacts
           for file in *; do
-            username="${file%-result}"
-            echo "Обработка: $file → Пользователь: $username"
-            mkdir -p "../leaderboard_results/$username"
-            mv "$file" "../leaderboard_results/$username/result.json"
+            if [ -f "$file" ]; then
+              username="${file%-result}"
+              echo "Обработка: $file → Пользователь: $username"
+              mkdir -p "../leaderboard_results/$username"
+              mv "$file" "../leaderboard_results/$username/result.json"
+            fi
           done
+          cd ..
         else
           echo "Артефактов не найдено"
         fi
         
-        echo "Финальная структура:"
-        find leaderboard_results -type f
+        # Копируем обработанные данные
+        cp -R leaderboard_results/* results/ || echo "Нет данных для копирования"
+        
+        echo "Финальная структура results:"
+        find results -type f || echo "Каталог results пуст"
         
     - name: Generate leaderboard
       run: |
-        # Создаем каталог results если его нет
-        mkdir -p results
-        
-        # Копируем обработанные данные
-        if [ -d "leaderboard_results" ]; then
-          cp -R leaderboard_results/* results/ || echo "Нет данных для копирования"
-        fi
-        
         python3 leaderboard.py
         cat LEADERBOARD.md
         
