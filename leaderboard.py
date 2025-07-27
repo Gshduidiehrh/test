@@ -3,42 +3,57 @@ import glob
 import os
 
 def generate_leaderboard():
+    print("Начало генерации таблицы лидеров...")
     results = []
-    for file in glob.glob("results/*/*.json"):
+    result_files = glob.glob("results/**/*.json", recursive=True)
+    print(f"Найдено файлов с результатами: {len(result_files)}")
+    
+    for file in result_files:
         try:
+            print(f"Обработка файла: {file}")
             with open(file) as f:
-                content = f.read().strip()
-                if not content:
-                    continue
-                    
-                data = json.loads(content)
-                username = os.path.basename(os.path.dirname(file))
-                total_time = data["generation_time"] + data["sorting_time"]
-                results.append({
-                    "user": username,
-                    "generation": data["generation_time"],
-                    "sorting": data["sorting_time"],
-                    "total": total_time
-                })
-                print(f"Found result for {username}: {total_time:.2f} ms")
+                data = json.load(f)
+                
+            # Извлекаем имя пользователя из пути
+            username = os.path.basename(os.path.dirname(file))
+            print(f"Пользователь: {username}")
+            
+            # Проверяем наличие необходимых полей
+            if 'generation_time' not in data or 'sorting_time' not in data:
+                print(f"⚠️ Отсутствуют поля в {file}: {data}")
+                continue
+                
+            total = data['generation_time'] + data['sorting_time']
+            results.append({
+                "user": username,
+                "generation": data["generation_time"],
+                "sorting": data["sorting_time"],
+                "total": total
+            })
+            print(f"✅ Добавлен результат: {username} - {total:.2f} мс")
+            
         except Exception as e:
-            print(f"Error processing {file}: {str(e)}")
-            continue
+            print(f"❌ Ошибка обработки {file}: {str(e)}")
+    
+    # Сортируем по лучшему результату
+    results.sort(key=lambda x: x["total"])
+    print(f"Всего результатов: {len(results)}")
+    
+    # Генерация таблицы
+    md = "# 🏆 Таблица лидеров\n\n"
     
     if not results:
-        print("No results found!")
-        return "# 🏆 Leaderboard\n\nNo results yet!"
+        md += "Пока никаких результатов!\n"
+        print("⚠️ Нет данных для таблицы лидеров")
+        return md
     
-    results.sort(key=lambda x: x["total"])
-    
-    md = "# 🏆 Leaderboard\n\n"
-    md += "| Position | User | Generation (ms) | Sorting (ms) | Total (ms) |\n"
-    md += "|----------|------|-----------------|--------------|------------|\n"
+    md += "| Место | Пользователь | Генерация (мс) | Сортировка (мс) | Всего (мс) |\n"
+    md += "|-------|-------------|----------------|-----------------|------------|\n"
     
     for i, res in enumerate(results[:10]):
         md += f"| {i+1} | {res['user']} | {res['generation']:.2f} | {res['sorting']:.2f} | **{res['total']:.2f}** |\n"
     
-    print(f"Generated leaderboard with {len(results)} results")
+    print("✅ Таблица лидеров сгенерирована")
     return md
 
 if __name__ == "__main__":
