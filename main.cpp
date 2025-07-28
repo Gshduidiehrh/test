@@ -4,9 +4,21 @@
 #include <chrono>
 #include <fstream>
 #include <random>
+#include <sstream>
+
+std::string generate_json(double gen_time, double sort_time, bool sorted) {
+    std::stringstream json;
+    json << "{";
+    json << "\"generation_time\":" << gen_time << ",";
+    json << "\"sorting_time\":" << sort_time << ",";
+    json << "\"total_time\":" << (gen_time + sort_time) << ",";
+    json << "\"correctly_sorted\":" << (sorted ? "true" : "false");
+    json << "}";
+    return json.str();
+}
 
 int main() {
-    const size_t N = 50000;
+    const size_t N = 100000;
     std::vector<double> numbers(N);
     
     // Генерация случайных чисел
@@ -35,14 +47,9 @@ int main() {
         }
     }
     
-    // Сохранение результатов в JSON
+    // Сохранение результатов
     std::ofstream out("result.json");
-    out << "{";
-    out << "\"generation_time\":" << gen_time << ",";
-    out << "\"sorting_time\":" << sort_time << ",";
-    out << "\"total_time\":" << (gen_time + sort_time) << ",";
-    out << "\"correctly_sorted\":" << (sorted ? "true" : "false");
-    out << "}";
+    out << generate_json(gen_time, sort_time, sorted);
     out.close();
     
     return 0;
