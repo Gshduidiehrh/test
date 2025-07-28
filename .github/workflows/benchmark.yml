@@ -15,43 +15,27 @@ jobs:
       with:
         ref: ${{ github.event.workflow_run.head_sha }}
         
-    - name: Compile optimized
-      run: g++ -std=c++17 -O3 main.cpp -o main
-      
-    - name: Run benchmark
-      run: ./main
-      
-    - name: Save results
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ github.event.workflow_run.head_repository.owner.login }}
-        path: result.json
-
-name: Benchmark Runner
-
-on:
-  workflow_run:
-    workflows: ["CI Pipeline"]
-    types: [completed]
-
-jobs:
-  run-benchmark:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ github.event.workflow_run.head_sha }}
+    - name: Compile optimized and save log
+      run: |
+        g++ -std=c++17 -O3 main.cpp -o main > benchmark_compile_output.txt 2>&1
+        echo "### Компиляция завершена с кодом $?" >> benchmark_compile_output.txt
+        cat benchmark_compile_output.txt
+        if [ $? -ne 0 ]; then
+          echo "::error::Ошибка компиляции benchmark"
+          exit 1
+        fi
         
-    - name: Compile optimized
-      run: g++ -std=c++17 -O3 main.cpp -o main
-      
-    - name: Run benchmark
-      run: ./main
-      
-    - name: Save results
+    - name: Run benchmark and save log
+      run: |
+        ./main > benchmark_run_output.txt 2>&1
+        echo "### Benchmark завершен с кодом $?" >> benchmark_run_output.txt
+        cat benchmark_run_output.txt
+        
+    - name: Save benchmark outputs
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ github.event.workflow_run.head_repository.owner.login }}
-        path: result.json
+        name: benchmark-outputs-${{ github.event.workflow_run.id }}
+        path: |
+          benchmark_compile_output.txt
+          benchmark_run_output.txt
+          result.json
