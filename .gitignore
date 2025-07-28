@@ -1,0 +1,10 @@
+
+/main
+*.o
+
+*.txt
+result.json
+
+results/
+artifacts/
+benchmark-artifacts/v
