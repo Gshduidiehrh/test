@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 
 def check_results():
     try:
@@ -28,4 +29,5 @@ def check_results():
         return False
 
 if __name__ == "__main__":
-    check_results()
+    if not check_results():
+        sys.exit(1)
