@@ -22,16 +22,37 @@ jobs:
         pattern: 'benchmark-outputs-*'
         merge-multiple: true
         
-    - name: Prepare results
+    - name: Prepare results (debug output)
       run: |
         mkdir -p results
-        for artifact in benchmark-artifacts/*; do
-          if [ -f "$artifact/user.txt" ]; then
-            user=$(cat "$artifact/user.txt")
-            mkdir -p "results/$user"
-            cp "$artifact/result.json" "results/$user/result.json"
+        echo "Artifacts structure:"
+        find benchmark-artifacts -type f | sort
+        echo ""
+        
+        # Process each artifact
+        for artifact_dir in benchmark-artifacts/*; do
+          if [ -d "$artifact_dir" ]; then
+            echo "Processing artifact: $artifact_dir"
+            user_file="$artifact_dir/user.txt"
+            result_file="$artifact_dir/result.json"
+            
+            if [ -f "$user_file" ] && [ -f "$result_file" ]; then
+              user=$(cat "$user_file")
+              echo "Found user: $user"
+              mkdir -p "results/$user"
+              cp "$result_file" "results/$user/result.json"
+              echo "Copied result for $user"
+            else
+              echo "Missing files in $artifact_dir:"
+              [ -f "$user_file" ] || echo "  user.txt missing"
+              [ -f "$result_file" ] || echo "  result.json missing"
+            fi
           fi
         done
+        
+        echo ""
+        echo "Results directory content:"
+        find results -type f | sort
         
     - name: Generate leaderboard
       run: |
