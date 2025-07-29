@@ -1,10 +1,8 @@
-
 /main
 *.o
-
 *.txt
 result.json
-
+*_stdout.txt
+*_stderr.txt
 results/
-artifacts/
-benchmark-artifacts/v
+benchmark-artifacts/
