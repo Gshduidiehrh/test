@@ -32,7 +32,6 @@ jobs:
             
             if [ -f "$user_file" ] && [ -f "$result_file" ]; then
               user=$(cat "$user_file")
-              echo "Processing user: $user"
               mkdir -p "results/$user"
               cp "$result_file" "results/$user/result.json"
             fi
@@ -45,9 +44,7 @@ jobs:
         python-version: '3.x'
         
     - name: Generate leaderboard
-      run: |
-        python3 leaderboard.py
-        cat LEADERBOARD.md
+      run: python3 leaderboard.py
         
     - name: Commit and push
       run: |
