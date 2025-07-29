@@ -22,37 +22,27 @@ jobs:
         pattern: 'benchmark-outputs-*'
         merge-multiple: true
         
-    - name: Prepare results (debug output)
+    - name: Prepare results
       run: |
         mkdir -p results
-        echo "Artifacts structure:"
-        find benchmark-artifacts -type f | sort
-        echo ""
-        
-        # Process each artifact
         for artifact_dir in benchmark-artifacts/*; do
           if [ -d "$artifact_dir" ]; then
-            echo "Processing artifact: $artifact_dir"
             user_file="$artifact_dir/user.txt"
             result_file="$artifact_dir/result.json"
             
             if [ -f "$user_file" ] && [ -f "$result_file" ]; then
               user=$(cat "$user_file")
-              echo "Found user: $user"
+              echo "Processing user: $user"
               mkdir -p "results/$user"
               cp "$result_file" "results/$user/result.json"
-              echo "Copied result for $user"
-            else
-              echo "Missing files in $artifact_dir:"
-              [ -f "$user_file" ] || echo "  user.txt missing"
-              [ -f "$result_file" ] || echo "  result.json missing"
             fi
           fi
         done
         
-        echo ""
-        echo "Results directory content:"
-        find results -type f | sort
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
         
     - name: Generate leaderboard
       run: |
