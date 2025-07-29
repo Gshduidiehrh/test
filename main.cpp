@@ -3,8 +3,9 @@
 #include <algorithm>
 #include <chrono>
 #include <fstream>
-#include <random>
 #include <sstream>
+#include <random>
+
 
 std::string generate_json(double gen_time, double sort_time, bool sorted) {
     std::stringstream json;
