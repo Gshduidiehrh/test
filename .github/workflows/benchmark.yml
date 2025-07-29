@@ -1,62 +1,33 @@
-name: CI Pipeline
+name: Benchmark Runner
 
-on: [push, pull_request, workflow_dispatch]
+on:
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types: [completed]
 
 jobs:
-  build-and-test:
+  run-benchmark:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
-    - name: Install dependencies
-      run: sudo apt-get update && sudo apt-get install -y build-essential
-      
-    - name: Compile and save logs
-      run: |
-        g++ -std=c++17 -O2 main.cpp -o main > compile_stdout.txt 2> compile_stderr.txt
-        EXIT_CODE=$?
-        cat compile_stdout.txt compile_stderr.txt > compile_output.txt
-        echo "### Компиляция завершена с кодом $EXIT_CODE" >> compile_output.txt
-        cat compile_output.txt
-        if [ $EXIT_CODE -ne 0 ]; then
-          echo "::error::Ошибка компиляции"
-          exit 1
-        fi
-        
-    - name: Run and save logs
-      run: |
-        ./main > run_stdout.txt 2> run_stderr.txt
-        EXIT_CODE=$?
-        cat run_stdout.txt run_stderr.txt > run_output.txt
-        echo "### Запуск завершен с кодом $EXIT_CODE" >> run_output.txt
-        cat run_output.txt
-        
-    - name: Validate results
-      run: |
-        python3 result_checker.py > validation_stdout.txt 2> validation_stderr.txt
-        EXIT_CODE=$?
-        cat validation_stdout.txt validation_stderr.txt > validation_output.txt
-        if [ $EXIT_CODE -ne 0 ]; then
-          cat validation_output.txt
-          echo "::error::Ошибка валидации"
-          exit 1
-        fi
-        cat validation_output.txt
-        
-    - name: Save all outputs
-      uses: actions/upload-artifact@v4
-      if: always()
       with:
-        name: ci-outputs-${{ github.run_id }}
+        ref: ${{ github.event.workflow_run.head_sha }}
+        
+    - name: Compile optimized
+      run: g++ -std=c++17 -O3 main.cpp -o main
+      
+    - name: Run benchmark
+      run: ./main
+      
+    - name: Save user info
+      run: echo "${{ github.actor }}" > user.txt
+        
+    - name: Upload results
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-outputs-${{ github.event.workflow_run.id }}
         path: |
-          compile_stdout.txt
-          compile_stderr.txt
-          compile_output.txt
-          run_stdout.txt
-          run_stderr.txt
-          run_output.txt
-          validation_stdout.txt
-          validation_stderr.txt
-          validation_output.txt
           result.json
+          user.txt
