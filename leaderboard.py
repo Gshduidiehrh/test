@@ -21,7 +21,7 @@ def generate_leaderboard():
                 with open(file) as f:
                     data = json.load(f)
                 sys.stderr.write("JSON content:\n")
-                sys.stderr.write(json.dumps(data, indent=2)  # Pretty-print JSON
+                sys.stderr.write(json.dumps(data, indent=2))  # Pretty-print JSON
                 sys.stderr.write("\n")
                 
                 username = os.path.basename(os.path.dirname(file))
