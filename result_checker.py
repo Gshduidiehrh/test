@@ -4,8 +4,9 @@ import sys
 
 def check_results():
     try:
+        sys.stderr.write("Checking result.json...\n")
         if not os.path.exists("result.json"):
-            print("❌ Файл result.json не найден")
+            sys.stderr.write("❌ Файл result.json не найден\n")
             return False
             
         with open('result.json') as f:
@@ -14,18 +15,21 @@ def check_results():
         required_fields = ['generation_time', 'sorting_time', 'total_time', 'correctly_sorted']
         for field in required_fields:
             if field not in data:
-                print(f"❌ Отсутствует поле: {field}")
+                sys.stderr.write(f"❌ Отсутствует поле: {field}\n")
                 return False
                 
         if not data['correctly_sorted']:
-            print("❌ Массив не отсортирован правильно")
+            sys.stderr.write("❌ Массив не отсортирован правильно\n")
             return False
             
-        print(f"✅ Результаты верны! Генерация: {data['generation_time']} мс, Сортировка: {data['sorting_time']} мс")
+        sys.stdout.write(f"✅ Результаты верны! Генерация: {data['generation_time']} мс, Сортировка: {data['sorting_time']} мс\n")
         return True
         
+    except json.JSONDecodeError:
+        sys.stderr.write("❌ Ошибка формата JSON\n")
+        return False
     except Exception as e:
-        print(f"❌ Ошибка проверки: {str(e)}")
+        sys.stderr.write(f"❌ Ошибка проверки: {str(e)}\n")
         return False
 
 if __name__ == "__main__":
