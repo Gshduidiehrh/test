@@ -1,41 +1,62 @@
-name: Benchmark Runner
+name: CI Pipeline
 
-on:
-  workflow_run:
-    workflows: ["CI Pipeline"]
-    types: [completed]
+on: [push, pull_request, workflow_dispatch]
 
 jobs:
-  run-benchmark:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        ref: ${{ github.event.workflow_run.head_sha }}
-        
-    - name: Compile optimized and save log
+      
+    - name: Install dependencies
+      run: sudo apt-get update && sudo apt-get install -y build-essential
+      
+    - name: Compile and save logs
       run: |
-        g++ -std=c++17 -O3 main.cpp -o main > benchmark_compile_output.txt 2>&1
-        echo "### Компиляция завершена с кодом $?" >> benchmark_compile_output.txt
-        cat benchmark_compile_output.txt
-        if [ $? -ne 0 ]; then
-          echo "::error::Ошибка компиляции benchmark"
+        g++ -std=c++17 -O2 main.cpp -o main > compile_stdout.txt 2> compile_stderr.txt
+        EXIT_CODE=$?
+        cat compile_stdout.txt compile_stderr.txt > compile_output.txt
+        echo "### Компиляция завершена с кодом $EXIT_CODE" >> compile_output.txt
+        cat compile_output.txt
+        if [ $EXIT_CODE -ne 0 ]; then
+          echo "::error::Ошибка компиляции"
           exit 1
         fi
         
-    - name: Run benchmark and save log
+    - name: Run and save logs
       run: |
-        ./main > benchmark_run_output.txt 2>&1
-        echo "### Benchmark завершен с кодом $?" >> benchmark_run_output.txt
-        cat benchmark_run_output.txt
+        ./main > run_stdout.txt 2> run_stderr.txt
+        EXIT_CODE=$?
+        cat run_stdout.txt run_stderr.txt > run_output.txt
+        echo "### Запуск завершен с кодом $EXIT_CODE" >> run_output.txt
+        cat run_output.txt
         
-    - name: Save benchmark outputs
+    - name: Validate results
+      run: |
+        python3 result_checker.py > validation_stdout.txt 2> validation_stderr.txt
+        EXIT_CODE=$?
+        cat validation_stdout.txt validation_stderr.txt > validation_output.txt
+        if [ $EXIT_CODE -ne 0 ]; then
+          cat validation_output.txt
+          echo "::error::Ошибка валидации"
+          exit 1
+        fi
+        cat validation_output.txt
+        
+    - name: Save all outputs
       uses: actions/upload-artifact@v4
+      if: always()
       with:
-        name: benchmark-outputs-${{ github.event.workflow_run.id }}
+        name: ci-outputs-${{ github.run_id }}
         path: |
-          benchmark_compile_output.txt
-          benchmark_run_output.txt
+          compile_stdout.txt
+          compile_stderr.txt
+          compile_output.txt
+          run_stdout.txt
+          run_stderr.txt
+          run_output.txt
+          validation_stdout.txt
+          validation_stderr.txt
+          validation_output.txt
           result.json
