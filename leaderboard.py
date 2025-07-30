@@ -6,58 +6,59 @@ from datetime import datetime
 
 def generate_leaderboard():
     try:
-        sys.stderr.write("Generating leaderboard...\n")
         user_results = {}
+        result_count = 0
         
-        sys.stderr.write("Scanning for result files...\n")
-        result_files = glob.glob("results/*/result.json")
-        sys.stderr.write(f"Found {len(result_files)} result files\n")
-        
-        for file in result_files:
+        for result_file in glob.glob("results/*/result.json"):
             try:
-                sys.stderr.write(f"Processing: {file}\n")
-                with open(file) as f:
+                with open(result_file, 'r') as f:
                     data = json.load(f)
                 
-                username = os.path.basename(os.path.dirname(file))
-                total = data['generation_time'] + data['sorting_time']
+                username = os.path.basename(os.path.dirname(result_file))
+                total_time = data['generation_time'] + data['sorting_time']
                 
-                if username not in user_results or total < user_results[username]["total"]:
+
+                if username not in user_results or total_time < user_results[username]['total']:
                     user_results[username] = {
-                        "generation": data["generation_time"],
-                        "sorting": data["sorting_time"],
-                        "total": total
+                        'generation': data['generation_time'],
+                        'sorting': data['sorting_time'],
+                        'total': total_time
                     }
+                    result_count += 1
+                    
             except Exception as e:
-                sys.stderr.write(f"Error processing {file}: {str(e)}\n")
-                continue
+                sys.stderr.write(f"Error processing {result_file}: {str(e)}\n")
         
-        results = []
-        for user, data in user_results.items():
-            results.append({
-                "user": user,
-                "generation": data["generation"],
-                "sorting": data["sorting"],
-                "total": data["total"]
-            })
+        sys.stderr.write(f"Processed {result_count} results from {len(user_results)} users\n")
+        results = [
+            {
+                'user': user,
+                'generation': data['generation'],
+                'sorting': data['sorting'],
+                'total': data['total']
+            }
+            for user, data in user_results.items()
+        ]
+        results.sort(key=lambda x: x['total'])
         
-        results.sort(key=lambda x: x["total"])
-        
+    
         md = "# 🏆 Таблица лидеров\n\n"
         md += f"Последнее обновление: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
         
         if results:
             md += "| Место | Пользователь | Генерация (мс) | Сортировка (мс) | Всего (мс) |\n"
             md += "|-------|-------------|----------------|-----------------|------------|\n"
-            for i, res in enumerate(results[:10]):
+            
+            for i, res in enumerate(results[:20]):
                 md += f"| {i+1} | {res['user']} | {res['generation']:.2f} | {res['sorting']:.2f} | **{res['total']:.2f}** |\n"
         else:
             md += "Пока нет результатов!\n"
-            
+        
         return md
         
     except Exception as e:
-        sys.stderr.write(f"Leaderboard error: {str(e)}\n")
+        import traceback
+        sys.stderr.write(f"Critical error: {str(e)}\n{traceback.format_exc()}")
         return f"# Ошибка генерации таблицы\n```\n{str(e)}\n```"
 
 if __name__ == "__main__":
