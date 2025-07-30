@@ -1,8 +1,6 @@
-/main
+main
 *.o
-*.txt
 result.json
-*_stdout.txt
-*_stderr.txt
+__pycache__
 results/
-benchmark-artifacts/
+artifacts/
