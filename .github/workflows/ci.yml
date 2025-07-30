@@ -1,50 +1,65 @@
 name: CI Pipeline
 
-on: [push, pull_request, workflow_dispatch]
+on: [push, pull_request]
 
 jobs:
-  build-and-test:
+  build-test-and-benchmark:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       
     - name: Install dependencies
-      run: sudo apt-get update && sudo apt-get install -y build-essential
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential valgrind
+        
+    - name: Compile with debug symbols
+      run: g++ -std=c++17 -g -O0 main.cpp -o main
       
-    - name: Compile and save log
+    - name: Memory check with Valgrind
       run: |
-        g++ -std=c++17 -O2 main.cpp -o main > compile_output.txt 2>&1
-        echo "### Компиляция завершена с кодом $?" >> compile_output.txt
-        cat compile_output.txt
-        # Проверяем успешность компиляции
-        if [ $? -ne 0 ]; then
-          echo "::error::Ошибка компиляции"
+        valgrind --leak-check=full --track-origins=yes --error-exitcode=1 ./main > valgrind_output.txt 2>&1 || VALGRIND_FAILED=1
+        if [ -n "${VALGRIND_FAILED}" ]; then
+          echo "::error::Valgrind found memory issues!"
+          cat valgrind_output.txt
+          
+          # Comment on PR if applicable
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "VALGRIND_ERRORS=1" >> $GITHUB_ENV
+          fi
           exit 1
         fi
         
-    - name: Run and save log
+    - name: Run and validate
       run: |
-        ./main > run_output.txt 2>&1
-        echo "### Запуск завершен с кодом $?" >> run_output.txt
-        cat run_output.txt
+        ./main
+        python3 result_checker.py || (echo "::error::Validation failed" && exit 1)
         
-    - name: Validate results
+    - name: Prepare for benchmark
+      if: success()
       run: |
-        python3 result_checker.py > validation_output.txt 2>&1
-        cat validation_output.txt
-        # Проверяем результат валидации
-        if [ $? -ne 0 ]; then
-          echo "::error::Ошибка валидации результатов"
-          exit 1
-        fi
+        g++ -std=c++17 -O3 main.cpp -o main
+        echo "${{ github.actor }}" > user.txt
         
-    - name: Save all outputs
+    - name: Upload benchmark artifacts
+      if: success()
       uses: actions/upload-artifact@v4
       with:
-        name: ci-outputs-${{ github.run_id }}
+        name: benchmark-${{ github.run_id }}
         path: |
-          compile_output.txt
-          run_output.txt
-          validation_output.txt
+          main
           result.json
+          user.txt
+          
+    - name: Update leaderboard
+      if: success()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          await github.rest.actions.createWorkflowDispatch({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            workflow_id: 'leaderboard.yml',
+            ref: context.ref
+          });
