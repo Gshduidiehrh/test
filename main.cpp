@@ -21,24 +21,26 @@ int main() {
     const size_t N = 100000;
     std::vector<double> numbers(N);
     
-    std::cout << "Starting program: sorting benchmark" << std::endl;
-    std::cerr << "DEBUG: Allocating memory for " << N << " elements" << std::endl;
-
-    auto start_gen = std::chrono::high_resolution_clock::now();
+    // Initialize random engine
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<> dis(1.0, 1000.0);
+    
+    // Generation phase
+    auto start_gen = std::chrono::high_resolution_clock::now();
     for (size_t i = 0; i < N; ++i) {
         numbers[i] = dis(gen);
     }
     auto end_gen = std::chrono::high_resolution_clock::now();
     double gen_time = std::chrono::duration<double, std::milli>(end_gen - start_gen).count();
     
+    // Sorting phase
     auto start_sort = std::chrono::high_resolution_clock::now();
     std::sort(numbers.begin(), numbers.end());
     auto end_sort = std::chrono::high_resolution_clock::now();
     double sort_time = std::chrono::duration<double, std::milli>(end_sort - start_sort).count();
     
+    // Validation
     bool sorted = true;
     for (size_t i = 0; i < N - 1; ++i) {
         if (numbers[i] > numbers[i + 1]) {
@@ -47,18 +49,9 @@ int main() {
         }
     }
     
-    std::cout << "Generation time: " << gen_time << " ms" << std::endl;
-    std::cout << "Sorting time: " << sort_time << " ms" << std::endl;
-    std::cout << "Total time: " << (gen_time + sort_time) << " ms" << std::endl;
-    std::cout << "Correctly sorted: " << (sorted ? "yes" : "no") << std::endl;
-    
-    if (!sorted) {
-        std::cerr << "ERROR: Array is not sorted correctly!" << std::endl;
-    }
-    
+    // Save results
     std::ofstream out("result.json");
     out << generate_json(gen_time, sort_time, sorted);
-    out.close();
     
     return 0;
 }
