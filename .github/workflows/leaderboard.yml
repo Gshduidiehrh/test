@@ -15,52 +15,37 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
-    - name: Download Benchmark artifacts
+    - name: Download benchmark artifacts
       uses: actions/download-artifact@v4
       with:
-        path: Benchmark-artifacts
-        pattern: 'Benchmark-Outputs-*'
-        merge-multiple: true
-        
-    - name: Debug artifacts
-      run: |
-        echo "Artifacts directory structure:"
-        find Benchmark-artifacts -type f -print
-        echo ""
+        path: benchmark-artifacts
+        name: benchmark_outputs  # Точно такое же имя в нижнем регистре
         
     - name: Prepare results
       run: |
         mkdir -p results
-        artifact_count=0
-        processed_count=0
-        
-        for artifact_dir in Benchmark-artifacts/*; do
-          if [ -d "$artifact_dir" ]; then
-            echo "Processing artifact directory: $artifact_dir"
-            user_file="$artifact_dir/user.txt"
-            result_file="$artifact_dir/result.json"
-            
-            if [ -f "$user_file" ] && [ -f "$result_file" ]; then
-              user=$(cat "$user_file")
-              echo "  Found user: $user"
-              mkdir -p "results/$user"
-              cp "$result_file" "results/$user/result.json"
-              processed_count=$((processed_count+1))
-            else
-              echo "  Missing files:"
-              [ -f "$user_file" ] || echo "    user.txt missing"
-              [ -f "$result_file" ] || echo "    result.json missing"
+        if [ -d "benchmark-artifacts" ]; then
+          for artifact_dir in benchmark-artifacts/*; do
+            if [ -d "$artifact_dir" ]; then
+              user_file="$artifact_dir/user.txt"
+              result_file="$artifact_dir/result.json"
+              
+              if [ -f "$user_file" ] && [ -f "$result_file" ]; then
+                user=$(cat "$user_file")
+                mkdir -p "results/$user"
+                cp "$result_file" "results/$user/result.json"
+                echo "Processed user: $user"
+              else
+                echo "Missing files in $artifact_dir"
+              fi
             fi
-            artifact_count=$((artifact_count+1))
-          fi
-        done
+          done
+        else
+          echo "No benchmark artifacts found"
+        fi
         
-        echo ""
-        echo "Summary:"
-        echo "  Artifacts processed: $artifact_count"
-        echo "  Valid results processed: $processed_count"
-        echo "  Results directory content:"
-        find results -type f -print
+        echo "Results directory structure:"
+        find results -type f -print || true
         
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -71,16 +56,7 @@ jobs:
       run: pip install pillow
         
     - name: Generate leaderboard
-      run: |
-        python3 leaderboard.py
-        
-    - name: Check generated files
-      run: |
-        echo "Generated files:"
-        ls -l LEADERBOARD.md leaderboard.png || true
-        echo ""
-        echo "LEADERBOARD.md content:"
-        cat LEADERBOARD.md || true
+      run: python3 leaderboard.py
         
     - name: Commit and push
       run: |
