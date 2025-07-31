@@ -6,23 +6,14 @@ from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
 
 def generate_leaderboard_image(results):
-    print(f"Generating image for {len(results)} results")
-    if not results:
-        print("No results to display in image")
-        return None
-    
     img_width = 800
     img_height = 100 + len(results) * 50
     img = Image.new('RGB', (img_width, img_height), color=(40, 44, 52))
     draw = ImageDraw.Draw(img)
     
-    try:
-        title_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 36)
-        header_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 24)
-        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 20)
-    except Exception as e:
-        print(f"Font error: {str(e)}")
-        sys.exit(1)
+    title_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 36)
+    header_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 24)
+    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 20)
     
     draw.text((img_width//2, 30), "🏆 Топ рекордов", fill=(255, 215, 0), font=title_font, anchor="mm")
     draw.text((50, 80), "Место", fill=(100, 149, 237), font=header_font)
@@ -46,24 +37,15 @@ def generate_leaderboard_image(results):
     return img
 
 def generate_leaderboard():
-    print("Starting leaderboard generation")
     user_results = {}
-    
-    print("Searching for result files...")
     result_files = glob.glob("results/*/result.json")
-    print(f"Found {len(result_files)} result files")
-    
-    if not result_files:
-        print("No result files found in 'results' directory")
     
     for file in result_files:
         try:
-            print(f"Processing file: {file}")
             with open(file) as f:
                 data = json.load(f)
             username = os.path.basename(os.path.dirname(file))
             total = data['generation_time'] + data['sorting_time']
-            print(f"  User: {username}, Total time: {total:.2f} ms")
             
             if username not in user_results or total < user_results[username]["total"]:
                 user_results[username] = {
@@ -71,8 +53,7 @@ def generate_leaderboard():
                     "sorting": data["sorting_time"],
                     "total": total
                 }
-        except Exception as e:
-            print(f"Error processing file {file}: {str(e)}")
+        except:
             continue
     
     results = []
@@ -84,18 +65,12 @@ def generate_leaderboard():
             "total": data["total"]
         })
     
-    if results:
-        results.sort(key=lambda x: x["total"])
-        top_results = results[:10]
-        print(f"Top {len(top_results)} results collected")
-    else:
-        top_results = []
-        print("No valid results collected")
+    results.sort(key=lambda x: x["total"])
+    top_results = results[:10]
     
-    img = generate_leaderboard_image(top_results)
-    if img:
+    if top_results:
+        img = generate_leaderboard_image(top_results)
         img.save("leaderboard.png")
-        print("Saved leaderboard.png")
     
     md = "# 🏆 Таблица лидеров\n\n"
     md += f"Последнее обновление: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
@@ -115,4 +90,3 @@ if __name__ == "__main__":
     leaderboard_md = generate_leaderboard()
     with open("LEADERBOARD.md", "w") as f:
         f.write(leaderboard_md)
-    print("Leaderboard generation completed")
