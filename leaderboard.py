@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: write
-  actions: read  # Добавлено новое разрешение
+  actions: read  # Ключевое разрешение
 
 jobs:
   update-leaderboard:
@@ -16,23 +16,34 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
-    - name: Wait for artifacts
-      run: sleep 30  # Задержка для доступности артефактов
-      
-    - name: Get workflow ID
-      id: get_workflow_id
+    - name: Find last benchmark run
+      id: find_benchmark
       run: |
-        workflow_id=$(gh api repos/${{ github.repository }}/actions/workflows/benchmark.yml --jq '.id')
-        echo "workflow_id=$workflow_id" >> $GITHUB_OUTPUT
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Установка необходимых инструментов
+        sudo apt-get update
+        sudo apt-get install -y jq
+        
+        # Поиск последнего успешного запуска Benchmark Runner
+        response=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          "https://api.github.com/repos/${{ github.repository }}/actions/runs?event=workflow_run&status=completed")
+        
+        # Извлекаем ID последнего запуска
+        run_id=$(echo "$response" | jq '.workflow_runs[] | select(.name == "Benchmark Runner") | .id' | head -1)
+        
+        if [ -z "$run_id" ]; then
+          echo "::error::No successful benchmark runs found"
+          exit 1
+        fi
+        
+        echo "Found benchmark run ID: $run_id"
+        echo "run_id=$run_id" >> $GITHUB_OUTPUT
         
     - name: Download benchmark artifacts
       uses: actions/download-artifact@v4
       with:
         path: benchmark-artifacts
         name: benchmark_outputs
-        workflow: ${{ steps.get_workflow_id.outputs.workflow_id }}
+        run_id: ${{ steps.find_benchmark.outputs.run_id }}
         
     - name: Prepare results
       run: |
@@ -48,9 +59,33 @@ jobs:
                 mkdir -p "results/$user"
                 cp "$result_file" "results/$user/result.json"
                 echo "Processed user: $user"
+              else
+                echo "Missing files in $artifact_dir"
               fi
             fi
           done
+        else
+          echo "No benchmark artifacts found"
         fi
         
-    # Остальные шаги без изменений...
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+        
+    - name: Install dependencies
+      run: pip install pillow
+        
+    - name: Generate leaderboard
+      run: python3 leaderboard.py
+        
+    - name: Commit and push
+      run: |
+        git config user.name "github-actions"
+        git config user.email "actions@users.noreply.github.com"
+        git add LEADERBOARD.md
+        git add leaderboard.png
+        if [ -n "$(git status --porcelain)" ]; then
+          git commit -m "📊 Обновление таблицы лидеров"
+          git push
+        fi
