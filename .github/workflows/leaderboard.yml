@@ -14,34 +14,74 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      
     - name: Download benchmark artifacts
       uses: actions/download-artifact@v4
       with:
         path: benchmark-artifacts
         pattern: 'benchmark-outputs-*'
         merge-multiple: true
+        
+    - name: Debug artifacts
+      run: |
+        echo "Artifacts directory structure:"
+        find benchmark-artifacts -type f -print
+        echo ""
+        
     - name: Prepare results
       run: |
         mkdir -p results
+        artifact_count=0
+        processed_count=0
+        
         for artifact_dir in benchmark-artifacts/*; do
           if [ -d "$artifact_dir" ]; then
+            echo "Processing artifact directory: $artifact_dir"
             user_file="$artifact_dir/user.txt"
             result_file="$artifact_dir/result.json"
+            
             if [ -f "$user_file" ] && [ -f "$result_file" ]; then
               user=$(cat "$user_file")
+              echo "  Found user: $user"
               mkdir -p "results/$user"
               cp "$result_file" "results/$user/result.json"
+              processed_count=$((processed_count+1))
+            else
+              echo "  Missing files:"
+              [ -f "$user_file" ] || echo "    user.txt missing"
+              [ -f "$result_file" ] || echo "    result.json missing"
             fi
+            artifact_count=$((artifact_count+1))
           fi
         done
+        
+        echo ""
+        echo "Summary:"
+        echo "  Artifacts processed: $artifact_count"
+        echo "  Valid results processed: $processed_count"
+        echo "  Results directory content:"
+        find results -type f -print
+        
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.x'
+        
     - name: Install dependencies
-      run: pip install pillow requests
+      run: pip install pillow
+        
     - name: Generate leaderboard
-      run: python3 leaderboard.py
+      run: |
+        python3 leaderboard.py
+        
+    - name: Check generated files
+      run: |
+        echo "Generated files:"
+        ls -l LEADERBOARD.md leaderboard.png || true
+        echo ""
+        echo "LEADERBOARD.md content:"
+        cat LEADERBOARD.md || true
+        
     - name: Commit and push
       run: |
         git config user.name "github-actions"
@@ -51,4 +91,6 @@ jobs:
         if [ -n "$(git status --porcelain)" ]; then
           git commit -m "📊 Обновление таблицы лидеров"
           git push
+        else
+          echo "No changes to commit"
         fi
