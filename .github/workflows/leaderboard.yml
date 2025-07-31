@@ -15,17 +15,17 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
-    - name: Download benchmark artifacts
+    - name: Download Benchmark artifacts
       uses: actions/download-artifact@v4
       with:
-        path: benchmark-artifacts
+        path: Benchmark-artifacts
         pattern: 'Benchmark-Outputs-*'
         merge-multiple: true
         
     - name: Debug artifacts
       run: |
         echo "Artifacts directory structure:"
-        find benchmark-artifacts -type f -print
+        find Benchmark-artifacts -type f -print
         echo ""
         
     - name: Prepare results
@@ -34,7 +34,7 @@ jobs:
         artifact_count=0
         processed_count=0
         
-        for artifact_dir in benchmark-artifacts/*; do
+        for artifact_dir in Benchmark-artifacts/*; do
           if [ -d "$artifact_dir" ]; then
             echo "Processing artifact directory: $artifact_dir"
             user_file="$artifact_dir/user.txt"
