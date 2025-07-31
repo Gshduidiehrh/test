@@ -3,4 +3,5 @@ main
 result.json
 __pycache__
 results/
+
 artifacts/
