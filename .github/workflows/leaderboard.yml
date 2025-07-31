@@ -14,14 +14,12 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      
     - name: Download benchmark artifacts
       uses: actions/download-artifact@v4
       with:
         path: benchmark-artifacts
         pattern: 'benchmark-outputs-*'
         merge-multiple: true
-        
     - name: Prepare results
       run: |
         mkdir -p results
@@ -29,7 +27,6 @@ jobs:
           if [ -d "$artifact_dir" ]; then
             user_file="$artifact_dir/user.txt"
             result_file="$artifact_dir/result.json"
-            
             if [ -f "$user_file" ] && [ -f "$result_file" ]; then
               user=$(cat "$user_file")
               mkdir -p "results/$user"
@@ -37,18 +34,14 @@ jobs:
             fi
           fi
         done
-        
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.x'
-        
     - name: Install dependencies
-      run: pip install pillow
-        
+      run: pip install pillow requests
     - name: Generate leaderboard
       run: python3 leaderboard.py
-        
     - name: Commit and push
       run: |
         git config user.name "github-actions"
@@ -58,6 +51,4 @@ jobs:
         if [ -n "$(git status --porcelain)" ]; then
           git commit -m "📊 Обновление таблицы лидеров"
           git push
-        else
-          echo "No changes to commit"
         fi
