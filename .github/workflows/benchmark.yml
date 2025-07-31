@@ -27,7 +27,7 @@ jobs:
     - name: Upload results
       uses: actions/upload-artifact@v4
       with:
-        name: Benchmark-Outputs-${{ github.event.workflow_run.id }}  
+        name: benchmark_outputs  
         path: |
           result.json
           user.txt
