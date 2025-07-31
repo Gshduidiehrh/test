@@ -1,50 +1,63 @@
 name: Update Leaderboard
 
 on:
+  schedule:
+    - cron: '0 0 * * *'
   workflow_dispatch:
-  repository_dispatch:
-    types: [update-leaderboard]
 
 permissions:
   contents: write
 
 jobs:
-  update:
+  update-leaderboard:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
       
-    - name: Download all artifacts
+    - name: Download benchmark artifacts
       uses: actions/download-artifact@v4
       with:
-        path: artifacts
-        pattern: 'benchmark-*'
+        path: benchmark-artifacts
+        pattern: 'benchmark-outputs-*'
         merge-multiple: true
         
-    - name: Process results
+    - name: Prepare results
       run: |
         mkdir -p results
-        find artifacts -name user.txt -print0 | while IFS= read -r -d $'\0' userfile; do
-          username=$(cat "$userfile")
-          resultfile=$(dirname "$userfile")/result.json
-          if [ -f "$resultfile" ]; then
-            mkdir -p "results/$username"
-            cp "$resultfile" "results/$username/result.json"
+        for artifact_dir in benchmark-artifacts/*; do
+          if [ -d "$artifact_dir" ]; then
+            user_file="$artifact_dir/user.txt"
+            result_file="$artifact_dir/result.json"
+            
+            if [ -f "$user_file" ] && [ -f "$result_file" ]; then
+              user=$(cat "$user_file")
+              mkdir -p "results/$user"
+              cp "$result_file" "results/$user/result.json"
+            fi
           fi
         done
         
-    - name: Generate leaderboard
-      run: |
-        python3 leaderboard.py
-        cat LEADERBOARD.md
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
         
-    - name: Commit and push leaderboard
+    - name: Install dependencies
+      run: pip install pillow
+        
+    - name: Generate leaderboard
+      run: python3 leaderboard.py
+        
+    - name: Commit and push
       run: |
         git config user.name "github-actions"
         git config user.email "actions@users.noreply.github.com"
         git add LEADERBOARD.md
+        git add leaderboard.png
         if [ -n "$(git status --porcelain)" ]; then
-          git commit -m "📊 Автообновление таблицы лидеров"
+          git commit -m "📊 Обновление таблицы лидеров"
           git push
+        else
+          echo "No changes to commit"
         fi
