@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  actions: read  # Ключевое разрешение
 
 jobs:
   update-leaderboard:
@@ -15,11 +16,34 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
+    - name: Find last benchmark run
+      id: find_benchmark
+      run: |
+        # Установка необходимых инструментов
+        sudo apt-get update
+        sudo apt-get install -y jq
+        
+        # Поиск последнего успешного запуска Benchmark Runner
+        response=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          "https://api.github.com/repos/${{ github.repository }}/actions/runs?event=workflow_run&status=completed")
+        
+        # Извлекаем ID последнего запуска
+        run_id=$(echo "$response" | jq '.workflow_runs[] | select(.name == "Benchmark Runner") | .id' | head -1)
+        
+        if [ -z "$run_id" ]; then
+          echo "::error::No successful benchmark runs found"
+          exit 1
+        fi
+        
+        echo "Found benchmark run ID: $run_id"
+        echo "run_id=$run_id" >> $GITHUB_OUTPUT
+        
     - name: Download benchmark artifacts
       uses: actions/download-artifact@v4
       with:
         path: benchmark-artifacts
-        name: benchmark_outputs  # Точно такое же имя в нижнем регистре
+        name: benchmark_outputs
+        run_id: ${{ steps.find_benchmark.outputs.run_id }}
         
     - name: Prepare results
       run: |
@@ -44,9 +68,6 @@ jobs:
           echo "No benchmark artifacts found"
         fi
         
-        echo "Results directory structure:"
-        find results -type f -print || true
-        
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
@@ -67,6 +88,4 @@ jobs:
         if [ -n "$(git status --porcelain)" ]; then
           git commit -m "📊 Обновление таблицы лидеров"
           git push
-        else
-          echo "No changes to commit"
         fi
