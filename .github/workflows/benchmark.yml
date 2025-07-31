@@ -14,16 +14,12 @@ jobs:
       uses: actions/checkout@v4
       with:
         ref: ${{ github.event.workflow_run.head_sha }}
-        
     - name: Compile optimized
       run: g++ -std=c++17 -O3 main.cpp -o main
-      
     - name: Run benchmark
       run: ./main
-      
     - name: Save user info
       run: echo "${{ github.actor }}" > user.txt
-        
     - name: Upload results
       uses: actions/upload-artifact@v4
       with:
