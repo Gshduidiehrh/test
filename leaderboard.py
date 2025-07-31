@@ -4,32 +4,25 @@ import os
 import sys
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
-import requests
-from io import BytesIO
 
 def generate_leaderboard_image(results):
+    print(f"Generating image for {len(results)} results")
+    if not results:
+        print("No results to display in image")
+        return None
+    
     img_width = 800
     img_height = 100 + len(results) * 50
     img = Image.new('RGB', (img_width, img_height), color=(40, 44, 52))
     draw = ImageDraw.Draw(img)
     
     try:
-        font_path = "fonts/Roboto-Regular.ttf"
-        title_font = ImageFont.truetype(font_path, 36)
-        header_font = ImageFont.truetype(font_path, 24)
-        font = ImageFont.truetype(font_path, 20)
-    except:
-        try:
-            font_url = "https://github.com/googlefonts/roboto/raw/main/src/hinted/Roboto-Regular.ttf"
-            response = requests.get(font_url)
-            font_bytes = BytesIO(response.content)
-            title_font = ImageFont.truetype(font_bytes, 36)
-            header_font = ImageFont.truetype(font_bytes, 24)
-            font = ImageFont.truetype(font_bytes, 20)
-        except:
-            title_font = ImageFont.load_default()
-            header_font = ImageFont.load_default()
-            font = ImageFont.load_default()
+        title_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 36)
+        header_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 24)
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 20)
+    except Exception as e:
+        print(f"Font error: {str(e)}")
+        sys.exit(1)
     
     draw.text((img_width//2, 30), "🏆 Топ рекордов", fill=(255, 215, 0), font=title_font, anchor="mm")
     draw.text((50, 80), "Место", fill=(100, 149, 237), font=header_font)
@@ -53,20 +46,33 @@ def generate_leaderboard_image(results):
     return img
 
 def generate_leaderboard():
+    print("Starting leaderboard generation")
     user_results = {}
-    for file in glob.glob("results/*/result.json"):
+    
+    print("Searching for result files...")
+    result_files = glob.glob("results/*/result.json")
+    print(f"Found {len(result_files)} result files")
+    
+    if not result_files:
+        print("No result files found in 'results' directory")
+    
+    for file in result_files:
         try:
+            print(f"Processing file: {file}")
             with open(file) as f:
                 data = json.load(f)
             username = os.path.basename(os.path.dirname(file))
             total = data['generation_time'] + data['sorting_time']
+            print(f"  User: {username}, Total time: {total:.2f} ms")
+            
             if username not in user_results or total < user_results[username]["total"]:
                 user_results[username] = {
                     "generation": data["generation_time"],
                     "sorting": data["sorting_time"],
                     "total": total
                 }
-        except:
+        except Exception as e:
+            print(f"Error processing file {file}: {str(e)}")
             continue
     
     results = []
@@ -78,17 +84,24 @@ def generate_leaderboard():
             "total": data["total"]
         })
     
-    results.sort(key=lambda x: x["total"])
-    top_results = results[:10]
+    if results:
+        results.sort(key=lambda x: x["total"])
+        top_results = results[:10]
+        print(f"Top {len(top_results)} results collected")
+    else:
+        top_results = []
+        print("No valid results collected")
     
     img = generate_leaderboard_image(top_results)
-    img.save("leaderboard.png")
+    if img:
+        img.save("leaderboard.png")
+        print("Saved leaderboard.png")
     
     md = "# 🏆 Таблица лидеров\n\n"
     md += f"Последнее обновление: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-    md += "![Leaderboard](leaderboard.png)\n\n"
     
-    if results:
+    if top_results:
+        md += "![Leaderboard](leaderboard.png)\n\n"
         md += "| Место | Пользователь | Генерация (мс) | Сортировка (мс) | Всего (мс) |\n"
         md += "|-------|-------------|----------------|-----------------|------------|\n"
         for i, res in enumerate(top_results):
@@ -102,3 +115,4 @@ if __name__ == "__main__":
     leaderboard_md = generate_leaderboard()
     with open("LEADERBOARD.md", "w") as f:
         f.write(leaderboard_md)
+    print("Leaderboard generation completed")
