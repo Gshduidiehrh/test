@@ -2,10 +2,10 @@
 #include <vector>
 #include <algorithm>
 #include <chrono>
+
+#include <sstream>
 #include <fstream>
 #include <random>
-#include <sstream>
-
 std::string generate_json(double gen_time, double sort_time, bool sorted) {
     std::stringstream json;
     json << "{";
