@@ -19,7 +19,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         path: benchmark-artifacts
-        pattern: 'benchmark-outputs-*'
+        pattern: 'Benchmark-Outputs-*'
         merge-multiple: true
         
     - name: Debug artifacts
