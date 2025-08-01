@@ -1,5 +1,4 @@
 import json
-import glob
 import os
 import sys
 from datetime import datetime
@@ -37,41 +36,34 @@ def generate_leaderboard_image(results):
     return img
 
 def generate_leaderboard():
-    user_results = {}
-    result_files = glob.glob("results/*/result.json")
+    results = []
+    users = os.listdir("results")
     
-    for file in result_files:
-        try:
-            with open(file) as f:
-                data = json.load(f)
-            username = os.path.basename(os.path.dirname(file))
-            total = data['generation_time'] + data['sorting_time']
-            
-            if username not in user_results or total < user_results[username]["total"]:
-                user_results[username] = {
+    for user in users:
+        result_file = os.path.join("results", user, "result.json")
+        if os.path.exists(result_file):
+            try:
+                with open(result_file) as f:
+                    data = json.load(f)
+                total = data['generation_time'] + data['sorting_time']
+                results.append({
+                    "user": user,
                     "generation": data["generation_time"],
                     "sorting": data["sorting_time"],
                     "total": total
-                }
-        except:
-            continue
+                })
+            except:
+                continue
     
-    results = []
-    for user, data in user_results.items():
-        results.append({
-            "user": user,
-            "generation": data["generation"],
-            "sorting": data["sorting"],
-            "total": data["total"]
-        })
-    
+   
     results.sort(key=lambda x: x["total"])
     top_results = results[:10]
-    
+
     if top_results:
         img = generate_leaderboard_image(top_results)
         img.save("leaderboard.png")
     
+
     md = "# 🏆 Таблица лидеров\n\n"
     md += f"Последнее обновление: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
     
