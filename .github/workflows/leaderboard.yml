@@ -2,11 +2,10 @@ name: update-leaderboard
 
 permissions:
   contents: write
-  actions: read
 
 on:
   schedule:
-    - cron: '0 * * * *'
+    - cron: '0 * * * *'  # Каждый час
   workflow_dispatch:
 
 jobs:
@@ -17,62 +16,42 @@ jobs:
     - uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-        # Забираем всю историю коммитов (чтобы получить предыдущие результаты)
-        fetch-depth: 0
+        fetch-depth: 0  # Полная история
 
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.x'
 
-    # Создаем папку для результатов
-    - name: Create results directory
-      run: mkdir -p results
-
-    # Загружаем артефакты только если они существуют
-    - name: Download previous artifacts
-      if: ${{ always() }}
-      uses: actions/download-artifact@v4
-      with:
-        name: results-json
-        path: results/
-      continue-on-error: true  # Продолжаем даже если артефакта нет
-
-    # Проверяем, есть ли результаты в репозитории
-    - name: Check for existing results
-      id: check-results
+    - name: Create and prepare directories
       run: |
-        if [ -d "results" ] && [ "$(ls -A results/*.json 2>/dev/null)" ]; then
-          echo "exists=true" >> $GITHUB_OUTPUT
-        else
-          echo "exists=false" >> $GITHUB_OUTPUT
-        fi
-
-    # Создаем начальный файл если результатов нет
-    - name: Create initial results
-      if: steps.check-results.outputs.exists == 'false'
-      run: |
-        echo '{"initial_user": 0}' > results/initial.json
-        echo "Created initial results file"
+        mkdir -p results
+        echo "Current directory: $(pwd)"
+        echo "Directory contents:"
+        ls -la
+        echo "Results directory:"
+        ls -ld results
+        chmod 777 results  # Убедимся в правах записи
 
     - name: Install dependencies
-      run: pip install matplotlib numpy python-dateutil
+      run: |
+        pip install matplotlib numpy python-dateutil
 
-    - name: Generate leaderboard
+    - name: Run leaderboard script
       run: python3 leaderboard.py
 
-    # Сохраняем results.json как артефакт для следующего запуска
-    - name: Upload results artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: results-json
-        path: results/*.json
-        retention-days: 90
+    - name: Verify file creation
+      run: |
+        echo "After script execution:"
+        ls -l results
+        [ -f results/results.json ] && echo "results.json exists" || echo "results.json missing"
+        [ -f leaderboard.png ] && echo "leaderboard.png exists" || echo "leaderboard.png missing"
+        [ -f LEADERBOARD.md ] && echo "LEADERBOARD.md exists" || echo "LEADERBOARD.md missing"
 
     - name: Commit and push changes
       run: |
         git config user.name "github-actions"
         git config user.email "github-actions@github.com"
-        git add LEADERBOARD.md leaderboard.png results/
-        git commit -m "Update leaderboard" || echo "No changes to commit"
+        git add .
+        git commit -m "Update leaderboard $(date '+%Y-%m-%d %H:%M:%S')" || echo "No changes to commit"
         git push
