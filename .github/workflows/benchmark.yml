@@ -10,7 +10,7 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
+    - name: Checkout repository
       uses: actions/checkout@v4
       with:
         ref: ${{ github.event.workflow_run.head_sha }}
@@ -22,12 +22,20 @@ jobs:
       run: ./main
       
     - name: Save user info
-      run: echo "${{ github.actor }}" > user.txt
+      run: |
+        user="${{ github.actor }}"
+        echo "Saving result for user: $user"
+        mkdir -p "results/$user"
+        cp result.json "results/$user/result.json"
         
-    - name: Upload results
-      uses: actions/upload-artifact@v4
-      with:
-        name: benchmark_outputs  
-        path: |
-          result.json
-          user.txt
+    - name: Commit and push results
+      run: |
+        git config user.name "github-actions"
+        git config user.email "actions@users.noreply.github.com"
+        git add results
+        if [ -n "$(git status --porcelain)" ]; then
+          git commit -m "📊 Add benchmark result for ${{ github.actor }}"
+          git push
+        else
+          echo "No changes to commit"
+        fi
