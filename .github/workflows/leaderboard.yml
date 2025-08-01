@@ -2,6 +2,7 @@ name: update-leaderboard
 
 permissions:
   contents: write
+  actions: read  # Добавляем разрешение на чтение артефактов
 
 on:
   schedule:
@@ -22,10 +23,16 @@ jobs:
       with:
         python-version: '3.x'
 
-    - name: Prepare data
-      run: |
-        mkdir -p results
-        cp data/*.csv results/
+    # Создаем папку для результатов
+    - name: Create results directory
+      run: mkdir -p results
+
+    # Загружаем артефакты из предыдущих запусков
+    - name: Download previous artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: results-json
+        path: results/
 
     - name: Install dependencies
       run: pip install matplotlib numpy python-dateutil
@@ -33,10 +40,18 @@ jobs:
     - name: Generate leaderboard
       run: python3 leaderboard.py
 
+    # Сохраняем results.json как артефакт для следующего запуска
+    - name: Upload results artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: results-json
+        path: results/*.json
+        retention-days: 90  # Храним артефакты 90 дней
+
     - name: Commit and push changes
       run: |
         git config user.name "github-actions"
         git config user.email "github-actions@github.com"
-        git add LEADERBOARD.md leaderboard.png
+        git add LEADERBOARD.md leaderboard.png results/
         git commit -m "Update leaderboard" || echo "No changes to commit"
         git push
