@@ -12,6 +12,11 @@ jobs:
   update-leaderboard:
     runs-on: ubuntu-latest
     steps:
+
+    - name: Create required directories
+      run: |
+        mkdir -p results
+    
     - name: Checkout repository with results
       uses: actions/checkout@v4
       with:
