@@ -1,7 +1,14 @@
-main
+# Бинарные файлы
+/main
 *.o
-result.json
-__pycache__
-results/
 
-artifacts/
+# Временные файлы
+*.txt
+result.json
+
+# Разделенные логи
+*_stdout.txt
+*_stderr.txt
+
+# Каталоги
+benchmark-artifacts/
