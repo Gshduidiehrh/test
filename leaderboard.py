@@ -1,33 +1,28 @@
-import json
-import os
-import sys
-from datetime import datetime
-from PIL import Image, ImageDraw, ImageFont
 import os
 import json
 import glob
+import matplotlib.pyplot as plt
+import numpy as np
+from datetime import datetime
 
 def generate_leaderboard():
-    # Создаем папку если нужно
-    os.makedirs("results", exist_ok=True)
-
+    # Убедимся, что папка results существует
     os.makedirs("results", exist_ok=True)
     
-    # Проверяем, есть ли файлы
-    json_files = [f for f in os.listdir("results") if f.endswith('.json')]
-    
-    if not json_files:
-        # Создаем начальный файл
-        with open("results/initial.json", "w") as f:
-            json.dump({"initial_user": 0}, f)
-        json_files = ["initial.json"]
+    # Диагностика: выводим содержимое папки results
+    print("Current directory:", os.getcwd())
+    print("Results contents:", os.listdir("results"))
     
     # Ищем все JSON файлы в папке results
     json_files = glob.glob("results/*.json")
+    print("Found JSON files:", json_files)
     
     if not json_files:
-        print("No JSON files found in results directory")
-        return
+        print("No JSON files found. Creating initial data.")
+        initial_data = {"initial_user": 100}
+        with open("results/initial.json", "w") as f:
+            json.dump(initial_data, f)
+        json_files = ["results/initial.json"]
     
     all_data = {}
     
@@ -35,101 +30,46 @@ def generate_leaderboard():
         try:
             with open(json_file, 'r') as f:
                 data = json.load(f)
-                # Пример обработки данных
+                print(f"Processing {json_file}: {data}")
+                
+                # Объединяем данные (берем максимальный балл для каждого пользователя)
                 for user, score in data.items():
                     if user not in all_data or score > all_data[user]:
                         all_data[user] = score
         except Exception as e:
             print(f"Error processing {json_file}: {e}")
     
-    # Дальнейшая обработка данных для создания leaderboard
-    # ... (ваш существующий код генерации leaderboard)
+    # Сортируем пользователей по баллам
+    sorted_users = sorted(all_data.items(), key=lambda x: x[1], reverse=True)
     
-    # Пример сохранения текущих результатов
-    current_results = {"user1": 100, "user2": 85}  # Ваши реальные данные
+    # Генерация Markdown таблицы
+    leaderboard_md = "# Leaderboard\n\n"
+    leaderboard_md += "| User | Score |\n"
+    leaderboard_md += "|------|-------|\n"
+    
+    for user, score in sorted_users:
+        leaderboard_md += f"| {user} | {score} |\n"
+    
+    # Генерация графика (пример)
+    if sorted_users:
+        users, scores = zip(*sorted_users)
+        plt.figure(figsize=(10, 6))
+        plt.bar(users, scores)
+        plt.title("Leaderboard")
+        plt.ylabel("Score")
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        plt.savefig("leaderboard.png")
+        print("Generated leaderboard.png")
+    
+    # Сохраняем объединенные результаты
     with open("results/results.json", "w") as f:
-        json.dump(current_results, f)
+        json.dump(all_data, f)
     
-    return leaderboard_md  # Возвращаем сгенерированный leaderboard
-def generate_leaderboard_image(results):
-    img_width = 800
-    img_height = 100 + len(results) * 50
-    img = Image.new('RGB', (img_width, img_height), color=(40, 44, 52))
-    draw = ImageDraw.Draw(img)
-    
-    title_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 36)
-    header_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 24)
-    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 20)
-    
-    draw.text((img_width//2, 30), "🏆 Топ рекордов", fill=(255, 215, 0), font=title_font, anchor="mm")
-    draw.text((50, 80), "Место", fill=(100, 149, 237), font=header_font)
-    draw.text((150, 80), "Никнейм", fill=(100, 149, 237), font=header_font)
-    draw.text((550, 80), "Время (мс)", fill=(100, 149, 237), font=header_font)
-    
-    draw.line((20, 110, img_width-20, 110), fill=(86, 96, 119), width=2)
-    
-    y_pos = 130
-    for i, res in enumerate(results):
-        draw.text((50, y_pos), f"{i+1}", fill=(255, 255, 255), font=font)
-        draw.text((150, y_pos), res['user'], fill=(255, 255, 255), font=font)
-        draw.text((550, y_pos), f"{res['total']:.2f}", fill=(152, 195, 121), font=font)
-        if i < len(results) - 1:
-            draw.line((20, y_pos+40, img_width-20, y_pos+40), fill=(65, 72, 92), width=1)
-        y_pos += 50
-    
-    footer = f"Обновлено: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-    draw.text((img_width//2, img_height-30), footer, fill=(128, 128, 128), font=font, anchor="mm")
-    
-    return img
-
-def generate_leaderboard():
-    print("Current directory:", os.getcwd())
-    print("Data contents:", os.listdir("data"))
-    print("Results contents:", os.listdir("results"))
-    
-    results = []
-    users = os.listdir("results")
-    
-    for user in users:
-        result_file = os.path.join("results", user, "result.json")
-        if os.path.exists(result_file):
-            try:
-                with open(result_file) as f:
-                    data = json.load(f)
-                total = data['generation_time'] + data['sorting_time']
-                results.append({
-                    "user": user,
-                    "generation": data["generation_time"],
-                    "sorting": data["sorting_time"],
-                    "total": total
-                })
-            except:
-                continue
-    
-   
-    results.sort(key=lambda x: x["total"])
-    top_results = results[:10]
-
-    if top_results:
-        img = generate_leaderboard_image(top_results)
-        img.save("leaderboard.png")
-    
-
-    md = "# 🏆 Таблица лидеров\n\n"
-    md += f"Последнее обновление: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-    
-    if top_results:
-        md += "![Leaderboard](leaderboard.png)\n\n"
-        md += "| Место | Пользователь | Генерация (мс) | Сортировка (мс) | Всего (мс) |\n"
-        md += "|-------|-------------|----------------|-----------------|------------|\n"
-        for i, res in enumerate(top_results):
-            md += f"| {i+1} | {res['user']} | {res['generation']:.2f} | {res['sorting']:.2f} | **{res['total']:.2f}** |\n"
-    else:
-        md += "Пока нет результатов!\n"
-    
-    return md
+    return leaderboard_md
 
 if __name__ == "__main__":
     leaderboard_md = generate_leaderboard()
     with open("LEADERBOARD.md", "w") as f:
         f.write(leaderboard_md)
+    print("LEADERBOARD.md updated")
