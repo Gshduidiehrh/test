@@ -10,6 +10,17 @@ import glob
 def generate_leaderboard():
     # Создаем папку если нужно
     os.makedirs("results", exist_ok=True)
+
+    os.makedirs("results", exist_ok=True)
+    
+    # Проверяем, есть ли файлы
+    json_files = [f for f in os.listdir("results") if f.endswith('.json')]
+    
+    if not json_files:
+        # Создаем начальный файл
+        with open("results/initial.json", "w") as f:
+            json.dump({"initial_user": 0}, f)
+        json_files = ["initial.json"]
     
     # Ищем все JSON файлы в папке results
     json_files = glob.glob("results/*.json")
