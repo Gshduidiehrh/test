@@ -7,66 +7,15 @@ on:
 
 permissions:
   contents: write
-  actions: read  # Ключевое разрешение
 
 jobs:
   update-leaderboard:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout repository
+    - name: Checkout repository with results
       uses: actions/checkout@v4
-      
-    - name: Find last benchmark run
-      id: find_benchmark
-      run: |
-        # Установка необходимых инструментов
-        sudo apt-get update
-        sudo apt-get install -y jq
-        
-        # Поиск последнего успешного запуска Benchmark Runner
-        response=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-          "https://api.github.com/repos/${{ github.repository }}/actions/runs?event=workflow_run&status=completed")
-        
-        # Извлекаем ID последнего запуска
-        run_id=$(echo "$response" | jq '.workflow_runs[] | select(.name == "Benchmark Runner") | .id' | head -1)
-        
-        if [ -z "$run_id" ]; then
-          echo "::error::No successful benchmark runs found"
-          exit 1
-        fi
-        
-        echo "Found benchmark run ID: $run_id"
-        echo "run_id=$run_id" >> $GITHUB_OUTPUT
-        
-    - name: Download benchmark artifacts
-      uses: actions/download-artifact@v4
       with:
-        path: benchmark-artifacts
-        name: benchmark_outputs
-        run_id: ${{ steps.find_benchmark.outputs.run_id }}
-        
-    - name: Prepare results
-      run: |
-        mkdir -p results
-        if [ -d "benchmark-artifacts" ]; then
-          for artifact_dir in benchmark-artifacts/*; do
-            if [ -d "$artifact_dir" ]; then
-              user_file="$artifact_dir/user.txt"
-              result_file="$artifact_dir/result.json"
-              
-              if [ -f "$user_file" ] && [ -f "$result_file" ]; then
-                user=$(cat "$user_file")
-                mkdir -p "results/$user"
-                cp "$result_file" "results/$user/result.json"
-                echo "Processed user: $user"
-              else
-                echo "Missing files in $artifact_dir"
-              fi
-            fi
-          done
-        else
-          echo "No benchmark artifacts found"
-        fi
+        fetch-depth: 0  # Полная история для доступа к результатам
         
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -79,7 +28,7 @@ jobs:
     - name: Generate leaderboard
       run: python3 leaderboard.py
         
-    - name: Commit and push
+    - name: Commit and push leaderboard
       run: |
         git config user.name "github-actions"
         git config user.email "actions@users.noreply.github.com"
