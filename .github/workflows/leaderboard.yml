@@ -18,29 +18,27 @@ jobs:
         python-version: '3.x'
 
     - name: Create required directories
-      run: |
-        mkdir -p results
-        mkdir -p data
+      run: mkdir -p results
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        # Установка только если файл существует
+        if [ -f "requirements.txt" ]; then
+          pip install -r requirements.txt
+        else
+          pip install matplotlib numpy python-dateutil
+        fi
 
     - name: Generate leaderboard
       run: python3 leaderboard.py
-
-    - name: Check generated files
-      run: |
-        ls -la
-        ls -la results/
 
     - name: Commit files
       run: |
         git config user.name "github-actions"
         git config user.email "github-actions@github.com"
         
-        # Добавляем только существующие файлы
+        # Безопасное добавление файлов
         [ -f leaderboard.png ] && git add leaderboard.png
         [ -f README.md ] && git add README.md
         
