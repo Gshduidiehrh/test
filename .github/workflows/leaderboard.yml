@@ -16,37 +16,21 @@ jobs:
     - uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-        fetch-depth: 0  # Полная история
+        fetch-depth: 0
 
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.x'
 
-    - name: Create and prepare directories
-      run: |
-        mkdir -p results
-        echo "Current directory: $(pwd)"
-        echo "Directory contents:"
-        ls -la
-        echo "Results directory:"
-        ls -ld results
-        chmod 777 results  # Убедимся в правах записи
+    - name: Create results directory
+      run: mkdir -p results
 
     - name: Install dependencies
-      run: |
-        pip install matplotlib numpy python-dateutil
+      run: pip install matplotlib numpy python-dateutil tabulate
 
-    - name: Run leaderboard script
+    - name: Generate leaderboard
       run: python3 leaderboard.py
-
-    - name: Verify file creation
-      run: |
-        echo "After script execution:"
-        ls -l results
-        [ -f results/results.json ] && echo "results.json exists" || echo "results.json missing"
-        [ -f leaderboard.png ] && echo "leaderboard.png exists" || echo "leaderboard.png missing"
-        [ -f LEADERBOARD.md ] && echo "LEADERBOARD.md exists" || echo "LEADERBOARD.md missing"
 
     - name: Commit and push changes
       run: |
