@@ -36,6 +36,10 @@ def generate_leaderboard_image(results):
     return img
 
 def generate_leaderboard():
+    print("Current directory:", os.getcwd())
+    print("Data contents:", os.listdir("data"))
+    print("Results contents:", os.listdir("results"))
+    
     results = []
     users = os.listdir("results")
     
