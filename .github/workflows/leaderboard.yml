@@ -1,45 +1,48 @@
-name: Update Leaderboard
+name: update-leaderboard
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 * * * *'
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
-  update-leaderboard:
+  build:
     runs-on: ubuntu-latest
-    steps:
 
-    - name: Create required directories
-      run: |
-        mkdir -p results
-    
-    - name: Checkout repository with results
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # Полная история для доступа к результатам
-        
+    steps:
+    - uses: actions/checkout@v4
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.x'
-        
+
+    - name: Create required directories
+      run: |
+        mkdir -p results
+        mkdir -p data
+
     - name: Install dependencies
-      run: pip install pillow
-        
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
     - name: Generate leaderboard
       run: python3 leaderboard.py
-        
-    - name: Commit and push leaderboard
+
+    - name: Check generated files
+      run: |
+        ls -la
+        ls -la results/
+
+    - name: Commit files
       run: |
         git config user.name "github-actions"
-        git config user.email "actions@users.noreply.github.com"
-        git add LEADERBOARD.md
-        git add leaderboard.png
-        if [ -n "$(git status --porcelain)" ]; then
-          git commit -m "📊 Обновление таблицы лидеров"
-          git push
-        fi
+        git config user.email "github-actions@github.com"
+        
+        # Добавляем только существующие файлы
+        [ -f leaderboard.png ] && git add leaderboard.png
+        [ -f README.md ] && git add README.md
+        
+        git commit -m "Update leaderboard" || echo "No changes to commit"
+        git push
