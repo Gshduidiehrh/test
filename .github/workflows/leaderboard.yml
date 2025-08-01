@@ -2,7 +2,7 @@ name: update-leaderboard
 
 permissions:
   contents: write
-  actions: read  # Добавляем разрешение на чтение артефактов
+  actions: read
 
 on:
   schedule:
@@ -17,6 +17,8 @@ jobs:
     - uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
+        # Забираем всю историю коммитов (чтобы получить предыдущие результаты)
+        fetch-depth: 0
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -27,12 +29,31 @@ jobs:
     - name: Create results directory
       run: mkdir -p results
 
-    # Загружаем артефакты из предыдущих запусков
+    # Загружаем артефакты только если они существуют
     - name: Download previous artifacts
+      if: ${{ always() }}
       uses: actions/download-artifact@v4
       with:
         name: results-json
         path: results/
+      continue-on-error: true  # Продолжаем даже если артефакта нет
+
+    # Проверяем, есть ли результаты в репозитории
+    - name: Check for existing results
+      id: check-results
+      run: |
+        if [ -d "results" ] && [ "$(ls -A results/*.json 2>/dev/null)" ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+        fi
+
+    # Создаем начальный файл если результатов нет
+    - name: Create initial results
+      if: steps.check-results.outputs.exists == 'false'
+      run: |
+        echo '{"initial_user": 0}' > results/initial.json
+        echo "Created initial results file"
 
     - name: Install dependencies
       run: pip install matplotlib numpy python-dateutil
@@ -46,7 +67,7 @@ jobs:
       with:
         name: results-json
         path: results/*.json
-        retention-days: 90  # Храним артефакты 90 дней
+        retention-days: 90
 
     - name: Commit and push changes
       run: |
