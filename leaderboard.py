@@ -3,7 +3,43 @@ import os
 import sys
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
+import os
+import json
+import glob
 
+def generate_leaderboard():
+    # Создаем папку если нужно
+    os.makedirs("results", exist_ok=True)
+    
+    # Ищем все JSON файлы в папке results
+    json_files = glob.glob("results/*.json")
+    
+    if not json_files:
+        print("No JSON files found in results directory")
+        return
+    
+    all_data = {}
+    
+    for json_file in json_files:
+        try:
+            with open(json_file, 'r') as f:
+                data = json.load(f)
+                # Пример обработки данных
+                for user, score in data.items():
+                    if user not in all_data or score > all_data[user]:
+                        all_data[user] = score
+        except Exception as e:
+            print(f"Error processing {json_file}: {e}")
+    
+    # Дальнейшая обработка данных для создания leaderboard
+    # ... (ваш существующий код генерации leaderboard)
+    
+    # Пример сохранения текущих результатов
+    current_results = {"user1": 100, "user2": 85}  # Ваши реальные данные
+    with open("results/results.json", "w") as f:
+        json.dump(current_results, f)
+    
+    return leaderboard_md  # Возвращаем сгенерированный leaderboard
 def generate_leaderboard_image(results):
     img_width = 800
     img_height = 100 + len(results) * 50
