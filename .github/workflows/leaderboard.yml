@@ -1,6 +1,5 @@
 name: update-leaderboard
 
-# Добавьте этот блок разрешений ▼
 permissions:
   contents: write
 
@@ -16,7 +15,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        # Явно указываем использовать токен с правами записи
         token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Set up Python
@@ -24,23 +22,21 @@ jobs:
       with:
         python-version: '3.x'
 
-    - name: Create required directories
-      run: mkdir -p results
+    - name: Prepare data
+      run: |
+        mkdir -p results
+        cp data/*.csv results/
 
     - name: Install dependencies
-      run: |
-        pip install matplotlib numpy python-dateutil
+      run: pip install matplotlib numpy python-dateutil
 
     - name: Generate leaderboard
       run: python3 leaderboard.py
 
-    - name: Commit files
+    - name: Commit and push changes
       run: |
         git config user.name "github-actions"
         git config user.email "github-actions@github.com"
-        
-        # Добавляем все изменённые файлы
-        git add -u
-        
+        git add LEADERBOARD.md leaderboard.png
         git commit -m "Update leaderboard" || echo "No changes to commit"
         git push
