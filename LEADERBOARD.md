@@ -1,8 +1,6 @@
-# Leaderboard
+# 🏆 Code Execution Leaderboard
 
-| User | Score |
-|------|-------|
-| total_time | 51.8312 |
-| sorting_time | 31.6904 |
-| generation_time | 20.1408 |
-| correctly_sorted | True |
+Rank | Username | Total Time (s) | Generation (s) | Sorting (s) | Correctly Sorted
+-----|----------|----------------|----------------|-------------|-----------------
+1 | results | 51.83 | 20.14 | 31.69 | ✅
+2 | result | 51.83 | 20.14 | 31.69 | ✅
